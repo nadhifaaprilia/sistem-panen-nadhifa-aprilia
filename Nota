@@ -1,0 +1,143 @@
+"""
+Modul sistem agroindustri: pencatatan transaksi penjualan komoditas pertanian.
+"""
+
+from datetime import datetime
+
+
+class KomoditasPertanian:
+    """
+    Merepresentasikan satu jenis komoditas pertanian beserta harga jualnya.
+    """
+
+    def __init__(self, nama, harga_per_kg, satuan="kg"):
+        self.nama = nama
+        self.harga_per_kg = harga_per_kg
+        self.satuan = satuan
+
+    def __repr__(self):
+        return f"KomoditasPertanian(nama={self.nama!r}, harga_per_kg={self.harga_per_kg})"
+
+
+class TransaksiPenjualan:
+    """
+    Merepresentasikan satu transaksi penjualan komoditas pertanian
+    kepada seorang pembeli.
+
+    Atribut:
+        id_transaksi (str): kode unik transaksi.
+        tanggal (str): tanggal transaksi, format 'YYYY-MM-DD'.
+        nama_pembeli (str): nama pembeli.
+        daftar_item (list[dict]): daftar item dengan struktur
+            {'komoditas': str, 'jumlah_kg': float}
+    """
+
+    def __init__(self, id_transaksi, tanggal, nama_pembeli, daftar_item=None):
+        self.id_transaksi = id_transaksi
+        self.tanggal = self._validasi_tanggal(tanggal)
+        self.nama_pembeli = nama_pembeli
+        self.daftar_item = daftar_item if daftar_item is not None else []
+
+    @staticmethod
+    def _validasi_tanggal(tanggal):
+        try:
+            datetime.strptime(tanggal, "%Y-%m-%d")
+        except ValueError:
+            raise ValueError(
+                f"Format tanggal tidak valid: '{tanggal}'. Gunakan format YYYY-MM-DD."
+            )
+        return tanggal
+
+    def tambah_item(self, komoditas, jumlah_kg):
+        """Menambahkan item baru ke daftar_item transaksi."""
+        self.daftar_item.append({"komoditas": komoditas, "jumlah_kg": jumlah_kg})
+
+    def hitung_total(self, daftar_komoditas):
+        """
+        Menghitung total nilai transaksi berdasarkan harga dari
+        objek-objek KomoditasPertanian yang diberikan.
+
+        Parameter:
+            daftar_komoditas (list[KomoditasPertanian]): referensi harga komoditas.
+
+        Return:
+            float: total nilai transaksi dalam rupiah.
+        """
+        peta_harga = {k.nama: k.harga_per_kg for k in daftar_komoditas}
+        total = 0.0
+
+        for item in self.daftar_item:
+            nama_komoditas = item["komoditas"]
+            jumlah_kg = item["jumlah_kg"]
+
+            if nama_komoditas not in peta_harga:
+                raise ValueError(
+                    f"Harga untuk komoditas '{nama_komoditas}' tidak ditemukan."
+                )
+
+            total += peta_harga[nama_komoditas] * jumlah_kg
+
+        return total
+
+    def tampilkan_struk(self, daftar_komoditas):
+        """
+        Menampilkan dan mengembalikan struk ringkasan transaksi
+        dalam bentuk string yang rapi.
+        """
+        peta_harga = {k.nama: k.harga_per_kg for k in daftar_komoditas}
+
+        garis = "=" * 42
+        baris_struk = [
+            garis,
+            "STRUK TRANSAKSI PENJUALAN".center(42),
+            garis,
+            f"ID Transaksi : {self.id_transaksi}",
+            f"Tanggal      : {self.tanggal}",
+            f"Pembeli      : {self.nama_pembeli}",
+            "-" * 42,
+            f"{'Komoditas':<15}{'Jml(kg)':>8}{'Harga/kg':>10}{'Subtotal':>9}",
+            "-" * 42,
+        ]
+
+        total = 0.0
+        for item in self.daftar_item:
+            nama = item["komoditas"]
+            jumlah = item["jumlah_kg"]
+            harga = peta_harga.get(nama, 0)
+            subtotal = harga * jumlah
+            total += subtotal
+            baris_struk.append(
+                f"{nama:<15}{jumlah:>8.1f}{harga:>10,.0f}{subtotal:>9,.0f}"
+            )
+
+        baris_struk.append("-" * 42)
+        baris_struk.append(f"{'TOTAL':<33}{total:>9,.0f}")
+        baris_struk.append(garis)
+
+        struk = "\n".join(baris_struk)
+        print(struk)
+        return struk
+
+
+if __name__ == "__main__":
+    # Contoh penggunaan
+    daftar_harga = [
+        KomoditasPertanian("Beras", 12000),
+        KomoditasPertanian("Jagung", 5000),
+        KomoditasPertanian("Kopi", 45000),
+    ]
+
+    transaksi = TransaksiPenjualan(
+        id_transaksi="TRX-0001",
+        tanggal="2026-09-16",
+        nama_pembeli="Budi Santoso",
+        daftar_item=[
+            {"komoditas": "Beras", "jumlah_kg": 50},
+            {"komoditas": "Jagung", "jumlah_kg": 20},
+            {"komoditas": "Kopi", "jumlah_kg": 3},
+        ],
+    )
+
+    print("Total nilai transaksi:", transaksi.hitung_total(daftar_harga))
+    print()
+    transaksi.tampilkan_struk(daftar_harga)
